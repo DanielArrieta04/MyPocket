@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular';
+import { DatabaseService } from './core/database/database.service';
+import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -7,5 +9,14 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular';
   imports: [IonApp, IonRouterOutlet],
 })
 export class AppComponent {
-  constructor() {}
+
+private readonly databaseService = inject(DatabaseService);
+
+constructor() {
+  this.databaseService.initialize().catch(error => {
+    console.error('MyPocket: Error de base de datos', error);
+  });
+}
+
+  
 }

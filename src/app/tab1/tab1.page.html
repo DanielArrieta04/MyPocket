@@ -1,15 +1,93 @@
-<ion-header [translucent]="true">
+
+<ion-header>
   <ion-toolbar>
-    <ion-title> Tab 1 </ion-title>
+    <ion-title>MyPocket</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+  <div class="summary">
+    <p>Mi dinero disponible</p>
+    <h1>{{ formatMoney(totalBalance) }}</h1>
+    <span>Saldo inicial de todas tus cuentas</span>
+  </div>
+
+  <section class="account-section">
+    <h2>Mis cuentas</h2>
+
+    <p *ngIf="loading">Cargando cuentas...</p>
+
+    <p *ngIf="!loading && accounts.length === 0">
+      Todavía no tienes cuentas registradas.
+    </p>
+
+    <div
+      class="account-card"
+      *ngFor="let account of accounts"
+    >
+      <div>
+        <strong>{{ account.name }}</strong>
+        <small>{{ account.type }}</small>
+      </div>
+
+      <strong>
+        {{ formatMoney(account.openingBalance) }}
+      </strong>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <h2>Nueva cuenta</h2>
+
+    <form (ngSubmit)="createAccount()">
+
+      <label for="account-name">Nombre</label>
+      <input
+        id="account-name"
+        name="accountName"
+        type="text"
+        maxlength="60"
+        placeholder="Ej. Nequi"
+        [(ngModel)]="name"
+        required
+      />
+
+      <label for="account-type">Tipo de cuenta</label>
+      <select
+        id="account-type"
+        name="accountType"
+        [(ngModel)]="type"
+      >
+        <option value="wallet">Billetera digital</option>
+        <option value="bank">Banco</option>
+        <option value="cash">Efectivo</option>
+      </select>
+
+      <label for="account-balance">Saldo inicial (COP)</label>
+      <input
+        id="account-balance"
+        name="accountBalance"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Ej. 150000"
+        [(ngModel)]="openingBalance"
+      />
+
+      <p class="error" *ngIf="error">
+        {{ error }}
+      </p>
+
+      <ion-button
+        type="submit"
+        expand="block"
+        [disabled]="saving || !name.trim()"
+      >
+        {{ saving ? 'Guardando...' : 'Crear cuenta' }}
+      </ion-button>
+
+    </form>
+  </section>
+
 </ion-content>
