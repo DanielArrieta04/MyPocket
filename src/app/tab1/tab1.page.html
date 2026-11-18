@@ -7,36 +7,179 @@
 
 <ion-content class="ion-padding">
 
+  <!-- RESUMEN FINANCIERO -->
   <div class="summary">
     <p>Mi dinero disponible</p>
-    <h1>{{ formatMoney(totalBalance) }}</h1>
-    <span>Saldo inicial de todas tus cuentas</span>
+    <h1>{{ formatMoney(totalBalance()) }}</h1>
+
+    <div class="summary-details">
+      <div>
+        <small>Ingresos registrados</small>
+        <strong class="income">
+          +{{ formatMoney(totalIncome()) }}
+        </strong>
+      </div>
+
+      <div>
+        <small>Gastos registrados</small>
+        <strong class="expense">
+          -{{ formatMoney(totalExpenses()) }}
+        </strong>
+      </div>
+    </div>
   </div>
 
+  <!-- MENSAJES -->
+  @if (loading()) {
+    <p>Cargando información...</p>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <!-- CUENTAS -->
   <section class="account-section">
     <h2>Mis cuentas</h2>
 
-    <p *ngIf="loading">Cargando cuentas...</p>
+    @if (!loading() && accounts().length === 0) {
+      <p>Todavía no tienes cuentas registradas.</p>
+    }
 
-    <p *ngIf="!loading && accounts.length === 0">
-      Todavía no tienes cuentas registradas.
-    </p>
+    @for (account of accounts(); track account.id) {
+      <div class="account-card">
+        <div>
+          <strong>{{ account.name }}</strong>
 
-    <div
-      class="account-card"
-      *ngFor="let account of accounts"
-    >
-      <div>
-        <strong>{{ account.name }}</strong>
-        <small>{{ account.type }}</small>
+          <small>
+            @switch (account.type) {
+              @case ('wallet') {
+                Billetera digital
+              }
+              @case ('bank') {
+                Banco
+              }
+              @case ('cash') {
+                Efectivo
+              }
+            }
+          </small>
+        </div>
+
+        <strong>
+          {{ formatMoney(getAccountBalance(account)) }}
+        </strong>
       </div>
-
-      <strong>
-        {{ formatMoney(account.openingBalance) }}
-      </strong>
-    </div>
+    }
   </section>
 
+  <!-- REGISTRAR MOVIMIENTOS -->
+  @if (accounts().length > 0) {
+    <section class="form-section">
+      <h2>Nuevo movimiento</h2>
+
+      <form (ngSubmit)="createMovement()">
+
+        <label for="movement-type">Tipo</label>
+        <select
+          id="movement-type"
+          name="movementType"
+          [(ngModel)]="movementType"
+        >
+          <option value="expense">Gasto</option>
+          <option value="income">Ingreso</option>
+        </select>
+
+        <label for="movement-account">Cuenta</label>
+        <select
+          id="movement-account"
+          name="movementAccount"
+          [(ngModel)]="selectedAccountId"
+          required
+        >
+          @for (account of accounts(); track account.id) {
+            <option [value]="account.id">
+              {{ account.name }}
+            </option>
+          }
+        </select>
+
+        <label for="movement-amount">Valor (COP)</label>
+        <input
+          id="movement-amount"
+          name="movementAmount"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="Ej. 20000"
+          [(ngModel)]="movementAmount"
+          required
+        />
+
+        <label for="movement-description">Descripción</label>
+        <input
+          id="movement-description"
+          name="movementDescription"
+          type="text"
+          maxlength="150"
+          placeholder="Ej. Gasolina"
+          [(ngModel)]="movementDescription"
+        />
+
+        <ion-button
+          type="submit"
+          expand="block"
+          [disabled]="saving() || loading() || !selectedAccountId"
+        >
+          {{ saving() ? 'Guardando...' : 'Guardar movimiento' }}
+        </ion-button>
+
+      </form>
+    </section>
+  }
+
+  <!-- HISTORIAL -->
+  <section class="account-section history-section">
+    <h2>Historial de movimientos</h2>
+
+    @if (!loading() && transactions().length === 0) {
+      <p>Todavía no tienes movimientos.</p>
+    }
+
+    @for (transaction of transactions(); track transaction.id) {
+      <div class="account-card">
+        <div>
+          <strong>
+            {{ transaction.description || 'Sin descripción' }}
+          </strong>
+
+          <small>
+            {{ getAccountName(transaction.accountId) }}
+            ·
+            {{ transaction.date | date:'dd/MM/yyyy HH:mm' }}
+          </small>
+        </div>
+
+        <strong
+          [class.income]="transaction.type === 'income'"
+          [class.expense]="transaction.type === 'expense'"
+        >
+          @if (
+            transaction.type === 'income' ||
+            transaction.type === 'transfer_in'
+          ) {
+            +
+          } @else {
+            -
+          }
+
+          {{ formatMoney(transaction.amount) }}
+        </strong>
+      </div>
+    }
+  </section>
+
+  <!-- CREAR CUENTAS -->
   <section class="form-section">
     <h2>Nueva cuenta</h2>
 
@@ -75,16 +218,12 @@
         [(ngModel)]="openingBalance"
       />
 
-      <p class="error" *ngIf="error">
-        {{ error }}
-      </p>
-
       <ion-button
         type="submit"
         expand="block"
-        [disabled]="saving || !name.trim()"
+        [disabled]="saving() || loading() || !name.trim()"
       >
-        {{ saving ? 'Guardando...' : 'Crear cuenta' }}
+        {{ saving() ? 'Guardando...' : 'Crear cuenta' }}
       </ion-button>
 
     </form>

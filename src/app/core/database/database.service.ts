@@ -3,9 +3,9 @@ import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import {
   CapacitorSQLite,
-  SQLiteConnection,
-  SQLiteDBConnection
+  SQLiteConnection
 } from '@capacitor-community/sqlite';
+import type { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 @Injectable({
   providedIn: 'root'

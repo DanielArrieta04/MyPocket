@@ -97,3 +97,40 @@ ion-button {
   color: #ff9696;
   font-size: 13px;
 }
+
+
+.summary-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  small {
+    color: #b4d0c0;
+  }
+}
+
+.income {
+  color: #65d6a0;
+}
+
+.expense {
+  color: #ff9292;
+}
+
+.history-section {
+  margin-top: 30px;
+}
+
+.account-card {
+  strong {
+    overflow-wrap: anywhere;
+  }
+}

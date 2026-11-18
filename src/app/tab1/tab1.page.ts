@@ -1,8 +1,8 @@
 
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import type { OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
 import {
   IonButton,
   IonContent,
@@ -11,9 +11,9 @@ import {
   IonToolbar
 } from '@ionic/angular';
 
-
-import { Account, AccountType } from '../core/models/account.model';
-import { AccountService } from '../core/services/account.service';
+import type { Account, AccountType } from '../core/models/account.model';
+import type { MovementType } from '../core/services/transaction.service';
+import { FinanceStore } from '../core/store/finance.store';
 
 @Component({
   selector: 'app-tab1',
@@ -21,33 +21,63 @@ import { AccountService } from '../core/services/account.service';
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    IonButton,
-    IonContent,
-    IonHeader,
-    IonTitle,
-    IonToolbar
-  ]
+  CommonModule,
+  FormsModule,
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar
+]
+
 })
 export class Tab1Page implements OnInit {
-  private readonly accountService = inject(AccountService);
+  private readonly finance = inject(FinanceStore);
 
-  accounts: Account[] = [];
+  // Estado reactivo
+  readonly accounts = this.finance.accounts;
+  readonly transactions = this.finance.transactions;
+  readonly loading = this.finance.loading;
+  readonly totalBalance = this.finance.totalBalance;
+  readonly totalIncome = this.finance.totalIncome;
+  readonly totalExpenses = this.finance.totalExpenses;
 
+  readonly saving = signal(false);
+  readonly error = signal('');
+
+  // Formulario de cuentas
   name = '';
   type: AccountType = 'wallet';
   openingBalance: number | null = null;
 
-  loading = true;
-  saving = false;
-  error = '';
+  // Formulario de movimientos
+  selectedAccountId = '';
+  movementType: MovementType = 'expense';
+  movementAmount: number | null = null;
+  movementDescription = '';
 
-  get totalBalance(): number {
-    return this.accounts.reduce(
-      (total, account) => total + account.openingBalance,
-      0
-    );
+  async ngOnInit(): Promise<void> {
+    this.error.set('');
+
+    try {
+      await this.finance.load();
+
+      this.selectedAccountId =
+        this.accounts()[0]?.id ?? '';
+    } catch (error) {
+      console.error(error);
+      this.error.set('No se pudieron cargar los datos.');
+    }
+  }
+
+  getAccountBalance(account: Account): number {
+    return this.finance.balanceFor(account.id);
+  }
+
+  getAccountName(accountId: string): string {
+    return this.accounts().find(
+      account => account.id === accountId
+    )?.name ?? 'Cuenta desconocida';
   }
 
   formatMoney(value: number): string {
@@ -58,48 +88,61 @@ export class Tab1Page implements OnInit {
     }).format(value);
   }
 
-  async ngOnInit(): Promise<void> {
-    await this.loadAccounts();
-  }
-
-  async loadAccounts(): Promise<void> {
-    this.loading = true;
-    this.error = '';
-
-    try {
-      this.accounts = await this.accountService.getAll();
-    } catch (error) {
-      console.error(error);
-      this.error = 'No se pudieron cargar las cuentas.';
-    } finally {
-      this.loading = false;
-    }
-  }
-
   async createAccount(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving() || this.loading()) return;
 
-    this.error = '';
-    this.saving = true;
+    this.saving.set(true);
+    this.error.set('');
 
     try {
-      await this.accountService.create(
+      const account = await this.finance.addAccount(
         this.name,
         this.type,
         this.openingBalance ?? 0
       );
 
+      if (!this.selectedAccountId) {
+        this.selectedAccountId = account.id;
+      }
+
       this.name = '';
       this.type = 'wallet';
       this.openingBalance = null;
-
-      await this.loadAccounts();
     } catch (error) {
-      this.error = error instanceof Error
-        ? error.message
-        : 'No se pudo crear la cuenta';
+      this.error.set(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo crear la cuenta.'
+      );
     } finally {
-      this.saving = false;
+      this.saving.set(false);
+    }
+  }
+
+  async createMovement(): Promise<void> {
+    if (this.saving() || this.loading()) return;
+
+    this.saving.set(true);
+    this.error.set('');
+
+    try {
+      await this.finance.addMovement(
+        this.selectedAccountId,
+        this.movementType,
+        this.movementAmount ?? 0,
+        this.movementDescription
+      );
+
+      this.movementAmount = null;
+      this.movementDescription = '';
+    } catch (error) {
+      this.error.set(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo guardar el movimiento.'
+      );
+    } finally {
+      this.saving.set(false);
     }
   }
 }

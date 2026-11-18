@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular';
+
 import { DatabaseService } from './core/database/database.service';
-import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-root',

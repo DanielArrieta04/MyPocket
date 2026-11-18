@@ -1,7 +1,8 @@
 
 import { inject, Injectable } from '@angular/core';
+
 import { DatabaseService } from '../database/database.service';
-import { Account, AccountType } from '../models/account.model';
+import type { Account, AccountType } from '../models/account.model';
 
 @Injectable({
   providedIn: 'root'
